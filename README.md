@@ -89,6 +89,27 @@ The buttons and analog sticks are two separate input devices in Linux.
 (`/dev/input/r36s-gamepad`) with evsieve; SDL and RetroArch only see that
 one.
 
+### Analog stick range
+
+The sticks are read by the upstream `adc-joystick` driver, which reports
+the raw 10-bit ADC value with a fixed range from the device tree
+(`abs-range` in `dts/rk3326-gameconsole-r36s.dts`). Unlike ArkOS's
+vendor driver, it does not calibrate the center at boot. The range is
+262-762, ±250 around 512. The sticks rest at ~505-525 and their travel is
+not symmetric: one R36S measured 4-85 at the low end but only 786-884
+at the high end. Travel beyond the range is clamped by SDL and RetroArch.
+
+If a stick doesn't reach full deflection in some direction, or reaches
+it too early, change `abs-range` and reboot. Narrower ranges reach full
+deflection sooner but give less fine control. ArkOS reaches full
+deflection only ~128 counts from the center. To see what your sticks
+actually do, poll the raw values while moving them (`evtest` can't
+read the device while `r36s-gamepad.service` grabs it):
+
+    while true; do cat /sys/bus/iio/devices/iio:device1/in_voltage{0,1,2,3}_raw | tr '\n' ' '; echo; done
+
+The channels are left X, right X, left Y, right Y.
+
 ## Boot time
 
 Boot to RetroArch takes ~30 s (it was ~50 s). The generic NixOS kernel

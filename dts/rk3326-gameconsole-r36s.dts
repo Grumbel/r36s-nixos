@@ -72,9 +72,13 @@
 };
 
 /*
- * Raw stick travel is about 60-900 around a center of ~512. The left
- * stick is mounted the other way round, a reversed abs-range inverts
- * the axis.
+ * The sticks rest at ~505-525 and are not symmetric: one R36S measured
+ * 4-85 at the low end but only 786-884 at the high end, so a range
+ * fitted to one stick leaves other (or worn) sticks short of full
+ * deflection. Use +/-250 around 512 instead, travel beyond that is
+ * clamped by userspace (ArkOS similarly applies a 200% gain around
+ * the center). The left stick is mounted the other way round, a
+ * reversed abs-range inverts the axis.
  *
  * adc_joystick_invert() in Linux 7.2 looks up the axis range by the
  * channel index instead of the event code, so inverted axes only work
@@ -89,22 +93,22 @@
 
 	axis@0 {
 		linux,code = <ABS_X>;
-		abs-range = <912 112>;
+		abs-range = <762 262>;
 	};
 
 	axis@1 {
 		linux,code = <ABS_Y>;
-		abs-range = <912 112>;
+		abs-range = <762 262>;
 	};
 
 	axis@2 {
 		linux,code = <ABS_RX>;
-		abs-range = <112 912>;
+		abs-range = <262 762>;
 	};
 
 	axis@3 {
 		linux,code = <ABS_RY>;
-		abs-range = <112 912>;
+		abs-range = <262 762>;
 	};
 };
 
