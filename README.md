@@ -15,16 +15,21 @@ Almost everything comes from the binary cache.
 
     zstd -dc result/sd-image/nixos-image-*.img.zst | sudo dd of=/dev/sdX bs=4M conv=fsync status=progress
 
-Then mount the `BOOT` (FAT) partition and add your WiFi network to
-`wpa_supplicant.conf`. The root partition grows to fill the card on first
-boot.
+Then mount the `BOOT` (FAT) partition and
+
+- add your WiFi network to `wpa_supplicant.conf`
+- add your SSH public key to `authorized_keys`
+
+The image itself contains no credentials. The root partition grows to fill
+the card on first boot.
 
 ## Log in
 
     ssh nixos@r36s.local
 
-The `nixos` user's SSH keys are in `configuration.nix`. Its password,
-`nixos`, only works on the serial console (UART2, 115200 8N1).
+SSH only accepts the keys from `authorized_keys` on the boot partition.
+The `nixos` user's password, `nixos`, only works on the serial console
+(UART2, 115200 8N1).
 
 ## Update
 

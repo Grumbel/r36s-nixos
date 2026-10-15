@@ -154,6 +154,7 @@ in
     populateFirmwareCommands = ''
       cp ${../bootloader/boot.ini} firmware/boot.ini
       cp ${../bootloader/wpa_supplicant.conf} firmware/wpa_supplicant.conf
+      cp ${../bootloader/authorized_keys} firmware/authorized_keys
       # Read by U-Boot itself to initialize the panel and show the logo.
       cp ${../bootloader/rg351mp-kernel.dtb} firmware/rg351mp-kernel.dtb
       cp ${../bootloader/logo.bmp} firmware/logo.bmp

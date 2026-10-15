@@ -11,9 +11,16 @@
     extraConfigFiles = [ "/boot/wpa_supplicant.conf" ];
   };
 
+  # SSH keys are read from authorized_keys on the FAT boot partition, so
+  # the image contains no personal keys and they can be added from a PC
+  # after flashing.
   services.openssh = {
     enable = true;
-    settings.PasswordAuthentication = false;
+    authorizedKeysFiles = [ "/boot/authorized_keys" ];
+    settings = {
+      PasswordAuthentication = false;
+      PermitRootLogin = "no";
+    };
   };
 
   # Reachable as r36s.local
@@ -37,8 +44,6 @@
     ];
     # For logging in on the serial console, SSH only accepts keys.
     initialPassword = "nixos";
-    openssh.authorizedKeys.keys = [
-    ];
   };
 
   security.sudo.wheelNeedsPassword = false;
