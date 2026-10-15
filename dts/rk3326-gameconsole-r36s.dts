@@ -59,26 +59,57 @@
 };
 
 /*
- * The R36S ships with a number of different ST7703-based panels, none of
- * which are supported by mainline yet. Disable the display pipeline
- * instead of driving the panel with the ODROID-GO Super init sequence.
+ * The R36S ships with a number of different panels, none of which have a
+ * mainline driver. Use ROCKNIX's panel-generic-dsi driver
+ * (drivers/panel-generic-dsi) which takes the whole panel description
+ * from the device tree.
+ *
+ * This is the original 640x480 ST7703 panel ("Panel 0" in the ArkOS
+ * panel chooser), converted from the vendor rk3326-r35s-linux.dtb:
+ *
+ *   G  size=<width_mm>,<height_mm> delays=<prepare>,<reset>,<init>,<enable>,<ready>
+ *      (delays in ms), flags are MIPI_DSI_MODE_* bits
+ *   M  clock=<kHz> horizontal=<active>,<fp>,<sync>,<bp> vertical=<same>
+ *   I  seq=<DCS command + payload> wait=<ms, in hex>
  */
-&display_subsystem {
-	status = "disabled";
-};
+&internal_display {
+	compatible = "rocknix,generic-dsi";
+	reset-gpios = <&gpio3 RK_PC0 GPIO_ACTIVE_LOW>;
+	vdd-supply = <&vcc_lcd>;
+	iovcc-supply = <&vcc_lcd>;
+	/delete-property/ rotation;
+	/delete-property/ IOVCC-supply;
+	/delete-property/ VCC-supply;
 
-&dsi {
-	status = "disabled";
-};
+	panel_description =
+		"G size=52,70 delays=2,1,20,120,20 format=rgb888 lanes=4 flags=0xe03",
 
-&dsi_dphy {
-	status = "disabled";
-};
+		"M clock=50000 horizontal=640,450,46,450 vertical=480,17,5,13 default=1",
+		"M clock=25500 horizontal=640,188,2,190 vertical=480,13,2,5",
+		"M clock=30600 horizontal=640,87,2,87 vertical=480,13,2,5",
 
-&vopb {
-	status = "disabled";
-};
-
-&vopb_mmu {
-	status = "disabled";
+		"I seq=b9f11283",
+		"I seq=b1000000da80",
+		"I seq=b2001370",
+		"I seq=b31010282803ff00000000",
+		"I seq=b480",
+		"I seq=b50a0a",
+		"I seq=b67f7f",
+		"I seq=b82662f063",
+		"I seq=ba338105f90e0e2000000000000000442500900a0000014f01000037",
+		"I seq=bc47",
+		"I seq=bf021100",
+		"I seq=c0737350500000125000",
+		"I seq=c153c0323277e1dddd77773333",
+		"I seq=c68200bfff00ff",
+		"I seq=c7b8000a000000",
+		"I seq=c810401e02",
+		"I seq=cc0b",
+		"I seq=e000070d37353f4144060c0d0f111012141a00070d37353f4144060c0d0f111012141a",
+		"I seq=e307070b0b0b0b00000000ff00c010",
+		"I seq=e9c810020000b0b11131232880b0b127080004020000000004020000008888ba60240888888888888888ba713518888888888800000001000000000000000000",
+		"I seq=ea970a820203070000000000008188ba17538888888888888088ba0642888888888888230000028000000000000000000000000000000000000000000000",
+		"I seq=efffff01",
+		"I seq=11 wait=c8",
+		"I seq=29 wait=32";
 };

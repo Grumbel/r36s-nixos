@@ -47,6 +47,15 @@ The bootloader blobs were taken from an R36S running ArkOS. U-Boot runs
 display init.
 
 The kernel device tree, `dts/rk3326-gameconsole-r36s.dts`, is mainline's
-ODROID-GO Super tree plus R36S fixes (OTG VBUS, second SD slot). The
-display is disabled for now because mainline has no driver for the R36S
-panels.
+ODROID-GO Super tree plus R36S fixes (OTG VBUS, second SD slot, PMIC
+restart).
+
+## Display
+
+Mainline has no driver for the R36S panels, so the built-in display uses
+ROCKNIX's `panel-generic-dsi` (`drivers/panel-generic-dsi`), built as an
+out-of-tree module. The panel's init sequence and timings are in the
+`panel_description` property in the DTS. They currently describe the
+original panel ("Panel 0" in ArkOS), converted from the vendor DTB. Other
+panel revisions need their own description, which can be converted the
+same way from the matching ArkOS `ScreenFiles/Panel N` DTB.

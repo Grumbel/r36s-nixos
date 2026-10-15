@@ -55,7 +55,9 @@ in
 
   boot.kernelPackages = pkgs.linuxPackages_latest;
   boot.kernelParams = [
-    # UART2 on the board, as used by U-Boot
+    # Kernel messages on the built-in display as well
+    "console=tty0"
+    # UART2 on the board, as used by U-Boot. Last, so it is /dev/console.
     "console=ttyS2,115200n8"
     "earlycon"
   ];
@@ -76,6 +78,10 @@ in
     name = dtbName;
     dtbSource = r36s-dtbs;
   };
+
+  boot.extraModulePackages = [
+    (config.boot.kernelPackages.callPackage ../drivers/panel-generic-dsi { })
+  ];
 
   hardware.firmware = [ mt7601u-firmware ];
 
