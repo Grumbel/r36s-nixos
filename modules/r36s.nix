@@ -50,6 +50,23 @@ let
     gamepadSticks
   ];
 
+  # Files on the FAT partition that are read by U-Boot itself
+  ubootFiles = pkgs.linkFarm "r36s-uboot-files" [
+    {
+      name = "boot.ini";
+      path = ../bootloader/boot.ini;
+    }
+    # Used by U-Boot to initialize the panel for the boot logo
+    {
+      name = "rg351mp-kernel.dtb";
+      path = ../bootloader/rg351mp-kernel.dtb;
+    }
+    {
+      name = "logo.bmp";
+      path = pkgs.callPackage ../pkgs/boot-logo { };
+    }
+  ];
+
   mt7601u-firmware = pkgs.runCommand "mt7601u-firmware" { } ''
     install -Dm644 ${pkgs.linux-firmware}/lib/firmware/mediatek/mt7601u.bin $out/lib/firmware/mediatek/mt7601u.bin
   '';
@@ -187,6 +204,31 @@ in
     ];
   };
 
+  # nixos-rebuild only updates extlinux.conf and the kernels on /boot, keep
+  # the files read by U-Boot up to date as well. User files on /boot
+  # (wpa_supplicant.conf, authorized_keys) are left alone.
+  systemd.services.r36s-boot-files = {
+    description = "Update U-Boot files on /boot";
+    wantedBy = [ "multi-user.target" ];
+    unitConfig.RequiresMountsFor = "/boot";
+    path = [ pkgs.diffutils ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      for f in ${ubootFiles}/*; do
+        n=$(basename "$f")
+        if ! cmp -s "$f" "/boot/$n"; then
+          echo "updating /boot/$n"
+          cp -L "$f" "/boot/$n.tmp"
+          mv "/boot/$n.tmp" "/boot/$n"
+        fi
+      done
+      sync /boot
+    '';
+  };
+
   sdImage = {
     # Same layout as ArkOS: bootloader in the first 16 MiB, then FAT.
     firmwarePartitionOffset = 16;
@@ -194,12 +236,9 @@ in
     firmwareSize = 512;
 
     populateFirmwareCommands = ''
-      cp ${../bootloader/boot.ini} firmware/boot.ini
+      cp -L ${ubootFiles}/* firmware/
       cp ${../bootloader/wpa_supplicant.conf} firmware/wpa_supplicant.conf
       cp ${../bootloader/authorized_keys} firmware/authorized_keys
-      # Read by U-Boot itself to initialize the panel and show the logo.
-      cp ${../bootloader/rg351mp-kernel.dtb} firmware/rg351mp-kernel.dtb
-      cp ${../bootloader/logo.bmp} firmware/logo.bmp
       ${config.boot.loader.generic-extlinux-compatible.populateCmd} -c ${config.system.build.toplevel} -d ./firmware
     '';
 

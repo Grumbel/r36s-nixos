@@ -49,7 +49,9 @@ The bootloader blobs were taken from an R36S running ArkOS. U-Boot runs
 `/boot.ini`, which chains into `sysboot` on the NixOS generated
 `/extlinux/extlinux.conf`, so generations and rollback work as usual.
 `rg351mp-kernel.dtb` and `logo.bmp` are only used by U-Boot for its own
-display init.
+display init. The logo is generated from the NixOS snowflake
+(`pkgs/boot-logo`). `r36s-boot-files.service` keeps `boot.ini`, the logo
+and the U-Boot DTB on `/boot` up to date after `nixos-rebuild`.
 
 The kernel device tree, `dts/rk3326-gameconsole-r36s.dts`, is mainline's
 ODROID-GO Super tree plus R36S fixes (OTG VBUS, second SD slot, PMIC
