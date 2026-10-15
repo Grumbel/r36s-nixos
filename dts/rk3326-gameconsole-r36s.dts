@@ -1,0 +1,84 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Game Console R36S (RK3326)
+ *
+ * The R36S is electrically very close to the ODROID-GO Super (which is
+ * also what ArkOS boots it as), so this builds on the mainline
+ * rk3326-odroid-go3.dts and only patches the differences that matter
+ * for a headless boot. Differences were taken from the vendor DTB
+ * shipped with ArkOS and from ROCKNIX's rk3326-gameconsole-r36s.dts.
+ */
+
+#include "rk3326-odroid-go3.dts"
+
+/ {
+	model = "Game Console R36S";
+	compatible = "gameconsole,r36s", "hardkernel,rk3326-odroid-go3", "rockchip,rk3326";
+
+	aliases {
+		mmc0 = &sdmmc;
+		mmc1 = &sdio;
+	};
+};
+
+&rk817 {
+	/*
+	 * Restart and power off through the PMIC. The PSCI SYSTEM_RESET of
+	 * the vendor BL31 (v1.3, 2018) never returns, so without this
+	 * `reboot` hangs after "reboot: Restarting system".
+	 */
+	system-power-controller;
+
+	regulators {
+		/* 5V VBUS for the OTG port, needed for USB WiFi dongles */
+		otg_switch: OTG_SWITCH {
+			regulator-name = "otg_switch";
+			regulator-boot-on;
+		};
+	};
+};
+
+&usb20_otg {
+	vbus-supply = <&otg_switch>;
+};
+
+/* Second microSD slot ("TF2") */
+&sdio {
+	bus-width = <4>;
+	cap-sd-highspeed;
+	card-detect-delay = <800>;
+	cd-gpios = <&gpio3 RK_PB6 GPIO_ACTIVE_LOW>;
+	disable-wp;
+	sd-uhs-sdr12;
+	sd-uhs-sdr25;
+	sd-uhs-sdr50;
+	sd-uhs-sdr104;
+	vmmc-supply = <&vcc_sd>;
+	vqmmc-supply = <&vccio_sd>;
+	status = "okay";
+};
+
+/*
+ * The R36S ships with a number of different ST7703-based panels, none of
+ * which are supported by mainline yet. Disable the display pipeline
+ * instead of driving the panel with the ODROID-GO Super init sequence.
+ */
+&display_subsystem {
+	status = "disabled";
+};
+
+&dsi {
+	status = "disabled";
+};
+
+&dsi_dphy {
+	status = "disabled";
+};
+
+&vopb {
+	status = "disabled";
+};
+
+&vopb_mmu {
+	status = "disabled";
+};
