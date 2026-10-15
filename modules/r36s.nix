@@ -80,18 +80,30 @@ in
 
   boot.kernelPackages = pkgs.linuxPackages_latest;
   boot.kernelParams = [
-    # Kernel messages on the built-in display as well
-    "console=tty0"
-    # UART2 on the board, as used by U-Boot. Last, so it is /dev/console.
+    # UART2 on the board, as used by U-Boot: kernel messages and a getty
     "console=ttyS2,115200n8"
     "earlycon"
+    # The built-in display. Last, so it is /dev/console and also gets the
+    # systemd boot status messages.
+    "console=tty0"
   ];
 
   # Everything needed to reach the SD card (dw_mmc, rk817 PMIC, pinctrl,
   # i2c, ...) is built into the kernel, the rest are modules.
   boot.initrd.availableKernelModules = [
-    "mmc_block"
     "io-domain"
+  ];
+
+  # Load these right away instead of waiting for udev, which only gets to
+  # them many seconds later: the SD card block device for the root file
+  # system, and the display, so boot messages show up on screen as soon as
+  # possible instead of only when stage 2 is mostly done.
+  boot.initrd.kernelModules = [
+    "mmc_block"
+    "rockchipdrm"
+    "phy-rockchip-inno-dsidphy"
+    "panel-generic-dsi"
+    "pwm_bl"
   ];
 
   # sd-image.nix pulls in modules for every platform, which only bloats
