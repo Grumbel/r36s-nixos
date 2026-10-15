@@ -19,6 +19,32 @@
 		mmc0 = &sdmmc;
 		mmc1 = &sdio;
 	};
+
+	/*
+	 * The DC port does not go to the rk817 charger: the battery is
+	 * charged by a separate charger IC, and the DC port also powers the
+	 * OTG port directly. The rk817 is only used as fuel gauge, so expose
+	 * the DC detect line as the mains supply.
+	 */
+	dc_charger: dc-charger {
+		compatible = "gpio-charger";
+		charger-type = "mains";
+		gpios = <&gpio0 RK_PB3 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&dc_det>;
+	};
+};
+
+/* 3380 mAh, values and OCV curve from the vendor DTB */
+&battery {
+	charge-full-design-microamp-hours = <3380000>;
+	charge-term-current-microamp = <320000>;
+	ocv-capacity-table-0 =  <4000000 100>, <3995000 95>, <3990000 90>, <3950000 85>,
+				<3910000 80>, <3870000 75>, <3830000 70>, <3790000 65>,
+				<3750000 60>, <3710000 55>, <3670000 50>, <3630000 45>,
+				<3580000 40>, <3530000 35>, <3480000 30>, <3430000 25>,
+				<3380000 20>, <3330000 15>, <3280000 10>, <3220000 5>,
+				<3165000 0>;
 };
 
 /*
