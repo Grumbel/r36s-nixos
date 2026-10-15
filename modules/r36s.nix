@@ -10,6 +10,7 @@
   lib,
   pkgs,
   modulesPath,
+  utils,
   ...
 }:
 
@@ -42,6 +43,13 @@ let
 
   # Only ship the firmware for the mt7601u USB WiFi dongle instead of all
   # of linux-firmware.
+  gamepadButtons = "/dev/input/by-path/platform-gpio-keys-event-joystick";
+  gamepadSticks = "/dev/input/by-path/platform-adc-joystick-event-joystick";
+  gamepadDevices = map (p: "${utils.escapeSystemdPath p}.device") [
+    gamepadButtons
+    gamepadSticks
+  ];
+
   mt7601u-firmware = pkgs.runCommand "mt7601u-firmware" { } ''
     install -Dm644 ${pkgs.linux-firmware}/lib/firmware/mediatek/mt7601u.bin $out/lib/firmware/mediatek/mt7601u.bin
   '';
@@ -87,6 +95,40 @@ in
 
   # Mesa with panfrost (Mali-G31) for rendering and rockchip for KMS
   hardware.graphics.enable = true;
+
+  # Buttons (gpio-keys) and sticks (adc-joystick) are two separate input
+  # devices, which most software would treat as two gamepads. Merge them
+  # into one virtual "R36S Gamepad" and hide the originals.
+  services.udev.extraRules = ''
+    # Make the gamepad devices visible to systemd, for r36s-gamepad.service,
+    # and stop them from showing up as separate (grabbed, so silent)
+    # joysticks next to the merged one
+    SUBSYSTEM=="input", ENV{ID_PATH}=="platform-gpio-keys|platform-adc-joystick", ENV{ID_INPUT_JOYSTICK}=""
+    SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_PATH}=="platform-gpio-keys|platform-adc-joystick", TAG+="systemd"
+  '';
+
+  systemd.services.r36s-gamepad = {
+    description = "Merge R36S buttons and sticks into one gamepad";
+    wantedBy = [ "multi-user.target" ];
+    requires = gamepadDevices;
+    after = gamepadDevices;
+    serviceConfig = {
+      ExecStart = lib.escapeShellArgs [
+        "${pkgs.evsieve}/bin/evsieve"
+        "--input"
+        gamepadButtons
+        "grab=force"
+        "--input"
+        gamepadSticks
+        "grab=force"
+        "--output"
+        "name=R36S Gamepad"
+        "create-link=/dev/input/r36s-gamepad"
+      ];
+      Restart = "always";
+      RestartSec = 1;
+    };
+  };
 
   # Keep the volume across reboots
   hardware.alsa.enablePersistence = true;

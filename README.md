@@ -64,3 +64,25 @@ out-of-tree module. The panel's init sequence and timings are in the
 original panel ("Panel 0" in ArkOS), converted from the vendor DTB. Other
 panel revisions need their own description, which can be converted the
 same way from the matching ArkOS `ScreenFiles/Panel N` DTB.
+
+## RetroArch
+
+RetroArch starts on boot on the built-in display (`modules/retroarch.nix`)
+and is controlled with the gamepad only:
+
+| Input                         | Action                               |
+|-------------------------------|--------------------------------------|
+| Select + X                    | open the menu while a game runs      |
+| Select + Start                | close the game, back to the menu     |
+| Main Menu → Quit RetroArch    | shut the device down                 |
+| Power button                  | shut the device down                 |
+
+ROMs go into `/home/nixos/roms`, e.g.
+`scp game.gba nixos@r36s.local:roms/`. Only free cores that are in the
+NixOS binary cache are included (fceumm, gambatte, mgba, pcsx-rearmed,
+beetle-pce-fast, stella).
+
+The buttons and analog sticks are two separate input devices in Linux.
+`r36s-gamepad.service` merges them into one virtual "R36S Gamepad"
+(`/dev/input/r36s-gamepad`) with evsieve; SDL and RetroArch only see that
+one.

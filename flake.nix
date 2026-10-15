@@ -11,6 +11,7 @@
       nixosConfigurations.r36s = nixpkgs.lib.nixosSystem {
         modules = [
           ./modules/r36s.nix
+          ./modules/retroarch.nix
           ./configuration.nix
         ];
       };
