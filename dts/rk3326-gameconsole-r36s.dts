@@ -21,6 +21,67 @@
 	};
 };
 
+/*
+ * Same GPIOs as the ODROID-GO Super, but the R36S has L3/R3/FN where the
+ * ODROID has F3-F6. Verified with evtest.
+ */
+&builtin_gamepad {
+	button-sw11 {
+		label = "L3";
+		linux,code = <BTN_THUMBL>;
+	};
+
+	button-sw12 {
+		label = "R3";
+		linux,code = <BTN_THUMBR>;
+	};
+
+	button-sw13 {
+		label = "FN";
+		linux,code = <BTN_MODE>;
+	};
+
+	/* GPIO2_A5 is not connected */
+	/delete-node/ button-sw14;
+};
+
+/*
+ * Raw stick travel is about 60-900 around a center of ~512. The left
+ * stick is mounted the other way round, a reversed abs-range inverts
+ * the axis.
+ *
+ * adc_joystick_invert() in Linux 7.2 looks up the axis range by the
+ * channel index instead of the event code, so inverted axes only work
+ * when reg == linux,code. The channels are reordered to make that true
+ * for ABS_X (0) and ABS_Y (1).
+ */
+&analog_sticks {
+	io-channels = <&joystick_mux 0>,	/* left X */
+		      <&joystick_mux 2>,	/* left Y */
+		      <&joystick_mux 1>,	/* right X */
+		      <&joystick_mux 3>;	/* right Y */
+
+	axis@0 {
+		linux,code = <ABS_X>;
+		abs-range = <912 112>;
+	};
+
+	axis@1 {
+		linux,code = <ABS_Y>;
+		abs-range = <912 112>;
+	};
+
+	axis@2 {
+		linux,code = <ABS_RX>;
+		abs-range = <112 912>;
+	};
+
+	axis@3 {
+		linux,code = <ABS_RY>;
+		abs-range = <112 912>;
+	};
+};
+
 &rk817 {
 	/*
 	 * Restart and power off through the PMIC. The PSCI SYSTEM_RESET of
