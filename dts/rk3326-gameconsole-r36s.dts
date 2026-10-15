@@ -146,6 +146,23 @@
 	vbus-supply = <&otg_switch>;
 };
 
+/* Unlike the ODROID-GO Super there is no SPI flash ("unrecognized JEDEC id") */
+&sfc {
+	status = "disabled";
+};
+
+/*
+ * Hardware video decoder. Unused and pulls in the whole V4L2/media stack
+ * at boot, enable it again when something wants to use it.
+ */
+&vpu {
+	status = "disabled";
+};
+
+&vpu_mmu {
+	status = "disabled";
+};
+
 /* Second microSD slot ("TF2") */
 &sdio {
 	bus-width = <4>;

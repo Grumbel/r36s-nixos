@@ -50,6 +50,24 @@ let
     gamepadSticks
   ];
 
+  # udev looks up a module for every device tree device, which is very slow
+  # with the generic kernel's huge alias list. Only allow the lookup for
+  # the compatibles of this board that actually have a module. This
+  # replaces systemd's 80-drivers.rules, see scripts/of-kmod-rules.py.
+  ofKmodRules = pkgs.runCommand "r36s-of-kmod-rules" {
+    nativeBuildInputs = [
+      pkgs.buildPackages.python3
+      pkgs.buildPackages.dtc
+    ];
+  } ''
+    dtc -I dtb -O dts -q ${r36s-dtbs}/${dtbName} -o board.dts
+    mkdir -p $out/lib/udev/rules.d
+    python3 ${../scripts/of-kmod-rules.py} board.dts \
+      ${config.system.modulesTree}/lib/modules/*/modules.alias \
+      ${config.systemd.package}/lib/udev/rules.d/80-drivers.rules \
+      > $out/lib/udev/rules.d/80-drivers.rules
+  '';
+
   # Files on the FAT partition that are read by U-Boot itself
   ubootFiles = pkgs.linkFarm "r36s-uboot-files" [
     {
@@ -86,6 +104,8 @@ in
     # The built-in display. Last, so it is /dev/console and also gets the
     # systemd boot status messages.
     "console=tty0"
+    # Boot at full speed, see r36s-cpufreq.service
+    "cpufreq.default_governor=performance"
   ];
 
   # Everything needed to reach the SD card (dw_mmc, rk817 PMIC, pinctrl,
@@ -128,6 +148,44 @@ in
   # Buttons (gpio-keys) and sticks (adc-joystick) are two separate input
   # devices, which most software would treat as two gamepads. Merge them
   # into one virtual "R36S Gamepad" and hide the originals.
+  # schedutil with its default rate limit (the 107 us transition latency)
+  # switches between 600 and 1296 MHz ~200 times per second, every switch
+  # changing the CPU voltage over the PMIC's I2C bus. That eats a good part
+  # of the CPU and slows down the boot considerably. Boot with the
+  # performance governor, then switch to schedutil with a sane rate limit.
+  systemd.services.r36s-cpufreq = {
+    description = "Switch to the schedutil CPU frequency governor";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "retroarch.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      echo schedutil > /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
+      echo 20000 > /sys/devices/system/cpu/cpufreq/schedutil/rate_limit_us
+    '';
+  };
+
+  # The udev coldplug replays an event for every module and driver the
+  # generic kernel knows about, built-in ones included: ~2600 of ~3200
+  # events, which take the RK3326 ~10 s to work through in each boot stage.
+  # Nothing needs them except the module events systemd uses for the
+  # configfs and fuse mounts.
+  systemd.services.systemd-udev-trigger.serviceConfig.ExecStart = [
+    ""
+    "-udevadm trigger --type=all --action=add --prioritized-subsystem=block,tpmrm,net,tty,input --subsystem-nomatch=module --subsystem-nomatch=drivers"
+    "-udevadm trigger --action=add --subsystem-match=module --sysname-match=configfs --sysname-match=fuse"
+  ];
+  boot.initrd.systemd.services.systemd-udev-trigger.serviceConfig.ExecStart = [
+    ""
+    "-udevadm trigger --type=all --action=add --prioritized-subsystem=block,tpmrm,net,tty,input --subsystem-nomatch=module --subsystem-nomatch=drivers"
+  ];
+
+  # mkAfter: must come after the 80-drivers.rules it replaces
+  services.udev.packages = lib.mkAfter [ ofKmodRules ];
+  boot.initrd.services.udev.packages = lib.mkAfter [ ofKmodRules ];
+
   services.udev.extraRules = ''
     # Make the gamepad devices visible to systemd, for r36s-gamepad.service,
     # and stop them from showing up as separate (grabbed, so silent)

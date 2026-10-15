@@ -88,3 +88,24 @@ The buttons and analog sticks are two separate input devices in Linux.
 `r36s-gamepad.service` merges them into one virtual "R36S Gamepad"
 (`/dev/input/r36s-gamepad`) with evsieve; SDL and RetroArch only see that
 one.
+
+## Boot time
+
+Boot to RetroArch takes ~30 s (it was ~50 s). The generic NixOS kernel
+is tuned for big machines, which hurts on the RK3326:
+
+- **CPU frequency:** `schedutil` with its default rate limit switches
+  between 600 and 1296 MHz ~200 times per second, each switch changing
+  the CPU voltage over the PMIC's I²C bus. The device boots with the
+  `performance` governor and `r36s-cpufreq.service` switches to
+  `schedutil` with a 20 ms rate limit once RetroArch is up.
+- **udev coldplug:** ~2600 of ~3200 coldplug events are for the
+  thousands of (mostly built-in) modules and drivers of the generic
+  kernel. `systemd-udev-trigger` skips the `module` and `drivers`
+  subsystems, except for the `configfs` and `fuse` module events systemd
+  needs.
+- **Module lookups:** a kmod lookup of a device tree modalias has to
+  match ~18000 wildcard aliases. `scripts/of-kmod-rules.py` replaces
+  systemd's `80-drivers.rules` with one that only does the lookup for the
+  compatibles of this board's DTB that actually have a module.
+- `mmc_block` and the display stack are loaded right away in the initrd.
