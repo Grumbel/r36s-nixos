@@ -82,6 +82,23 @@
 	};
 };
 
+/*
+ * The R36S speaker is driven by an external amplifier on the headphone
+ * outputs, which is cut off in hardware when headphones are plugged in.
+ * The rk817's own class D output (SPKO) is not connected, so leave it
+ * out to keep the codec's "Playback Mux" on HP.
+ */
+&{/rk817-sound} {
+	simple-audio-card,hp-det-gpios = <&gpio2 RK_PC6 GPIO_ACTIVE_LOW>;
+	simple-audio-card,widgets =
+		"Microphone", "Mic Jack",
+		"Headphone", "Headphones";
+	simple-audio-card,routing =
+		"MICL", "Mic Jack",
+		"Headphones", "HPOL",
+		"Headphones", "HPOR";
+};
+
 &rk817 {
 	/*
 	 * Restart and power off through the PMIC. The PSCI SYSTEM_RESET of

@@ -51,6 +51,7 @@
   };
 
   environment.systemPackages = with pkgs; [
+    alsa-utils
     evtest
     htop
     i2c-tools

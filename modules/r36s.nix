@@ -85,6 +85,39 @@ in
 
   hardware.firmware = [ mt7601u-firmware ];
 
+  # Keep the volume across reboots
+  hardware.alsa.enablePersistence = true;
+
+  # Volume buttons
+  services.actkbd = {
+    enable = true;
+    bindings = [
+      {
+        keys = [ 115 ]; # KEY_VOLUMEUP
+        events = [ "key" "rep" ];
+        command = "${pkgs.alsa-utils}/bin/amixer -q -c 0 sset Master playback 5%+";
+      }
+      {
+        keys = [ 114 ]; # KEY_VOLUMEDOWN
+        events = [ "key" "rep" ];
+        command = "${pkgs.alsa-utils}/bin/amixer -q -c 0 sset Master playback 5%-";
+      }
+    ];
+  };
+
+  # Without a keyboard the volume buttons are the only keys reaching the
+  # console, where they would type escape sequences (F14/Help).
+  systemd.services.console-ignore-volume-keys = {
+    description = "Ignore volume keys on the text console";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "systemd-vconsole-setup.service" ];
+    serviceConfig.Type = "oneshot";
+    script = ''
+      printf 'keycode 114 = VoidSymbol\nkeycode 115 = VoidSymbol\n' \
+        | ${pkgs.kbd}/bin/loadkeys -C /dev/tty1 -
+    '';
+  };
+
   boot.loader.grub.enable = false;
   boot.loader.generic-extlinux-compatible = {
     enable = true;
