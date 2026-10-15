@@ -85,6 +85,9 @@ in
 
   hardware.firmware = [ mt7601u-firmware ];
 
+  # Mesa with panfrost (Mali-G31) for rendering and rockchip for KMS
+  hardware.graphics.enable = true;
+
   # Keep the volume across reboots
   hardware.alsa.enablePersistence = true;
 

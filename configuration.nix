@@ -33,6 +33,7 @@
       "video"
       "audio"
       "input"
+      "render"
     ];
     # For logging in on the serial console, SSH only accepts keys.
     initialPassword = "nixos";
@@ -55,6 +56,7 @@
     evtest
     htop
     i2c-tools
+    (callPackage ./pkgs/sdl2-demo { })
     iw
     usbutils
     wpa_supplicant
