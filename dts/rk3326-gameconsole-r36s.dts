@@ -138,10 +138,15 @@
 	system-power-controller;
 
 	regulators {
-		/* 5V VBUS for the OTG port, needed for USB WiFi dongles */
+		/*
+		 * 5V VBUS for the OTG port, needed for USB WiFi dongles.
+		 * Always on, as dwc2 can lose track of it and leave it off
+		 * after a port power cycle, see UPSTREAM.md.
+		 */
 		otg_switch: OTG_SWITCH {
 			regulator-name = "otg_switch";
 			regulator-boot-on;
+			regulator-always-on;
 		};
 	};
 };

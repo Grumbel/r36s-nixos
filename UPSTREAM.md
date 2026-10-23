@@ -81,3 +81,30 @@ ROCKNIX's `importpanel.py` emits `wait=<ms>` in decimal, but
 `panel-generic-dsi.c` parses it with `simple_strtoul(val, NULL, 16)`, so
 e.g. `wait=120` sleeps 288 ms instead of 120 ms. Harmless (only slower),
 but one of the two should be changed. The DTS here writes hex values.
+
+## Linux: dwc2 can leave the VBUS regulator off after a port power cycle
+
+`dwc2_handle_session_req_intr()` in `drivers/usb/dwc2/core_intr.c` sets
+`HPRT0_PWR` in host mode without enabling `vbus-supply`, while
+`_dwc2_hcd_hub_control()` uses `HPRT0_PWR` to decide whether to enable or
+disable the regulator. When unplugging a USB device makes the hub driver
+power cycle the port ("usb usb1-port1: attempt power cycle"):
+
+1. `ClearPortFeature(POWER)` sees `HPRT0_PWR` set and disables the
+   regulator, VBUS goes off.
+2. A session request interrupt sets `HPRT0_PWR` again, the regulator
+   stays off.
+3. `SetPortFeature(POWER)` sees `HPRT0_PWR` already set and does not
+   enable the regulator.
+
+The port then has no VBUS until the next reboot: every device fails with
+`device descriptor read/8, error -71`, and the next power cycle warns
+"unbalanced disables for otg_switch". `dwc2_core_host_init()` also sets
+`HPRT0_PWR` without touching the regulator.
+
+- **Fix:** call `dwc2_vbus_supply_init()` wherever `HPRT0_PWR` is turned
+  on from off, or track the regulator state in a flag instead of
+  deriving it from `HPRT0_PWR`.
+- **Workaround here:** `regulator-always-on` on `otg_switch` in the R36S
+  DTS, so dwc2 can't turn VBUS off.
+- **Send to:** linux-usb@vger.kernel.org (Minas Harutyunyan, dwc2).
