@@ -59,6 +59,9 @@
     trusted-users = [ "@wheel" ];
   };
 
+  # For dual mode WiFi USB dongle
+  hardware.usb-modeswitch.enable = true;
+
   environment.systemPackages = with pkgs; [
     alsa-utils
     evtest
