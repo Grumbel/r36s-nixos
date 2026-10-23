@@ -65,6 +65,10 @@
     iw
     usbutils
     wpa_supplicant
+
+    libarchive
+    unzip
+    _7zz
   ];
 
   documentation.enable = false;
