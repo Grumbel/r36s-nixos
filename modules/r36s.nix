@@ -41,8 +41,6 @@ let
     '';
   };
 
-  # Only ship the firmware for the mt7601u USB WiFi dongle instead of all
-  # of linux-firmware.
   gamepadButtons = "/dev/input/by-path/platform-gpio-keys-event-joystick";
   gamepadSticks = "/dev/input/by-path/platform-adc-joystick-event-joystick";
   gamepadDevices = map (p: "${utils.escapeSystemdPath p}.device") [
@@ -85,9 +83,16 @@ let
     }
   ];
 
-  mt7601u-firmware = pkgs.runCommand "mt7601u-firmware" { } ''
-    install -Dm644 ${pkgs.linux-firmware}/lib/firmware/mediatek/mt7601u.bin $out/lib/firmware/mediatek/mt7601u.bin
-  '';
+  # The R36S has no built-in WiFi. Ship the firmware of all USB WiFi
+  # drivers (~8 MB compressed) instead of all of linux-firmware (~800 MB),
+  # see scripts/usb-wifi-firmware.sh.
+  wifi-firmware =
+    pkgs.runCommand "r36s-usb-wifi-firmware" { nativeBuildInputs = [ pkgs.buildPackages.kmod ]; }
+      ''
+        bash ${../scripts/usb-wifi-firmware.sh} ${config.system.modulesTree} \
+          ${config.boot.kernelPackages.kernel.modDirVersion} \
+          ${pkgs.linux-firmware}/lib/firmware $out/lib/firmware
+      '';
 in
 {
   imports = [
@@ -140,7 +145,7 @@ in
     (config.boot.kernelPackages.callPackage ../drivers/panel-generic-dsi { })
   ];
 
-  hardware.firmware = [ mt7601u-firmware ];
+  hardware.firmware = [ wifi-firmware ];
 
   # Mesa with panfrost (Mali-G31) for rendering and rockchip for KMS
   hardware.graphics.enable = true;
