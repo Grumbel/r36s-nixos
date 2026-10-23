@@ -23,6 +23,9 @@
     };
   };
 
+  # These can get incredible slow, not worth it
+  systemd.coredump.enable = false;
+
   # Reachable as r36s.local
   services.avahi = {
     enable = true;
