@@ -77,7 +77,8 @@ and is controlled with the gamepad only:
 | Select + X                    | open the menu while a game runs      |
 | Select + Start                | close the game, back to the menu     |
 | Main Menu → Quit RetroArch    | shut the device down                 |
-| Power button                  | shut the device down                 |
+| Power button                  | suspend, press again to wake up      |
+| Power button, hold 5 s        | shut the device down                 |
 
 ROMs go into `/home/nixos/roms`, e.g.
 `scp game.gba nixos@r36s.local:roms/`. Only free cores that are in the

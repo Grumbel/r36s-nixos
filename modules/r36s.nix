@@ -222,6 +222,14 @@ in
     };
   };
 
+  # Power button: short press suspends, holding it for 5 s (logind's fixed
+  # long press time) powers off. Deep suspend resumes fine, the rk805
+  # power key is a wakeup source.
+  services.logind.settings.Login = {
+    HandlePowerKey = "suspend";
+    HandlePowerKeyLongPress = "poweroff";
+  };
+
   # Keep the volume across reboots
   hardware.alsa.enablePersistence = true;
 
