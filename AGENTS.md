@@ -2,7 +2,7 @@
 
 NixOS flake for the R36S handheld (Rockchip RK3326, Mali-G31, aarch64).
 Mainline kernel (`linuxPackages_latest`), vendor bootloader blobs from
-ArkOS, RetroArch as the front end. `README.md` is the user-facing
+ArkOS, ES-DE as the front end launching RetroArch. `README.md` is the user-facing
 documentation, `UPSTREAM.md` lists upstream bugs found along the way.
 
 ## Layout
@@ -11,13 +11,15 @@ documentation, `UPSTREAM.md` lists upstream bugs found along the way.
 |------------------------------|-----------------------------------------------------------|
 | `flake.nix`                  | `nixosConfigurations.r36s`, `packages.*.sdImage`/`dtbs`   |
 | `modules/r36s.nix`           | hardware: kernel, DTB, firmware, boot chain, SD image, gamepad merge, boot-time tuning |
-| `modules/retroarch.nix`      | RetroArch on tty1, gamepad autoconfig, cores              |
+| `modules/retroarch.nix`      | RetroArch package (cores, gamepad autoconfig, hotkeys), `r36s.frontend`, standalone RetroArch on tty1 |
+| `modules/es-de.nix`          | ES-DE on tty1, launches games in RetroArch                |
 | `configuration.nix`          | the "user" part: WiFi, SSH, users, packages               |
 | `dts/rk3326-gameconsole-r36s.dts` | kernel device tree, builds on mainline `rk3326-odroid-go3.dts` |
 | `drivers/panel-generic-dsi/` | out-of-tree ROCKNIX panel driver for the built-in display |
 | `bootloader/`                | idbloader/U-Boot/trust blobs, `boot.ini`, U-Boot's panel DTB, templates for `/boot` |
-| `pkgs/`                      | boot logo, SDL2 demo                                      |
+| `pkgs/`                      | boot logo, SDL2 demo, ES-DE and FreeImage (both dropped from nixpkgs) |
 | `scripts/of-kmod-rules.py`   | generates the trimmed `80-drivers.rules`                  |
+| `scripts/es-systems.py`      | generates ES-DE's systems list from the installed cores   |
 
 ## Build and deploy
 
@@ -47,6 +49,21 @@ To check that a change actually reached the device, compare
   out-of-band control.
 - The only USB port is the OTG port (dwc2, host mode); USB WiFi dongles
   go there. There is no built-in WiFi.
+
+## Testing the UI without pressing buttons
+
+- Screenshot of the panel (buffers are linear BGRA):
+  `sudo ffmpeg -device /dev/dri/card0 -f kmsgrab -i - -vf hwdownload,format=bgra -frames:v 1 shot.png`
+  (`nix-shell -p ffmpeg-headless` on the device).
+- Button presses: create a uinput clone of `/dev/input/r36s-gamepad` with
+  python-evdev, named "R36S Gamepad" with bustype/vendor/product/version 0,
+  so ES-DE (SDL GUID) and RetroArch (autoconfig by name) treat it like the
+  real one. RetroArch only takes hotkeys from port 1: stop
+  `r36s-gamepad.service` while the clone is in use, start it again after.
+- `pkill -f`/`pgrep -f` over SSH match the SSH command line itself, use a
+  pattern like `"[r]etroarch-with-cores"`.
+- Headless core benchmarks: `retroarch-bare` with `video_driver = "null"`
+  and `--max-frames`; it needs `QT_QPA_PLATFORM=offscreen`.
 
 ## Conventions
 

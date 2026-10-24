@@ -1,7 +1,7 @@
 # NixOS for the R36S
 
-Minimal headless NixOS for the R36S (Rockchip RK3326) handheld: mainline
-kernel, USB WiFi, SSH.
+NixOS for the R36S (Rockchip RK3326) handheld: mainline kernel, ES-DE and
+RetroArch on the built-in display, USB WiFi, SSH.
 
 ## Build
 
@@ -67,28 +67,59 @@ original panel ("Panel 0" in ArkOS), converted from the vendor DTB. Other
 panel revisions need their own description, which can be converted the
 same way from the matching ArkOS `ScreenFiles/Panel N` DTB.
 
-## RetroArch
+## Games
 
-RetroArch starts on boot on the built-in display (`modules/retroarch.nix`)
-and is controlled with the gamepad only:
+The device boots into [ES-DE](https://es-de.org) (`modules/es-de.nix`),
+which launches the games in RetroArch (`modules/retroarch.nix`). With
+`r36s.frontend = "retroarch";` it boots straight into RetroArch instead.
+Everything is controlled with the gamepad:
 
-| Input                         | Action                               |
-|-------------------------------|--------------------------------------|
-| Select + X                    | open the menu while a game runs      |
-| Select + Start                | close the game, back to the menu     |
-| Main Menu → Quit RetroArch    | shut the device down                 |
-| Power button                  | suspend, press again to wake up      |
-| Power button, hold 5 s        | shut the device down                 |
+| Input                         | Action                                   |
+|-------------------------------|------------------------------------------|
+| A / B                         | ES-DE: select / back                     |
+| Start / Select                | ES-DE: main menu / game options          |
+| Start → Quit                  | ES-DE: power off, reboot or suspend      |
+| Select + X                    | RetroArch menu while a game runs         |
+| Select + Start                | quit the game, back to ES-DE (RetroArch only: back to its menu) |
+| Select + R1 / L1              | save / load state                        |
+| Select + D-pad left / right   | previous / next state slot               |
+| Select + R2                   | fast forward on/off                      |
+| Select + A                    | pause                                    |
+| Select + Y                    | screenshot                               |
+| FN + D-pad up / down          | brightness                               |
+| Volume buttons                | volume                                   |
+| Power button                  | suspend, press again to wake up          |
+| Power button, hold 5 s        | shut the device down                     |
 
-ROMs go into `/home/nixos/roms`, e.g.
-`scp game.gba nixos@r36s.local:roms/`. Only free cores that are in the
-NixOS binary cache are included (fceumm, gambatte, mgba, pcsx-rearmed,
-beetle-pce-fast, stella).
+With RetroArch as the front end, Main Menu → Quit RetroArch shuts the
+device down.
+
+ROMs go into `/roms`, one directory per system as ES-DE names them
+(`gba`, `snes`, `megadrive`, `psx`, …), e.g.
+`scp game.gba nixos@r36s.local:/roms/gba/`. To keep them elsewhere, mount
+a partition or the second SD card on `/roms` (`r36s.retroarch.romDirectory`
+changes the path). ES-DE only lists systems that have ROMs and an
+installed core. ES-DE rescans the ROM directories on every start: with
+~10000 games that takes ~15 s.
+
+The default cores are free and in the NixOS binary cache: atari800,
+beetle-ngp, beetle-pce-fast, beetle-wswan, bluemsx, dosbox-pure, fceumm,
+gambatte, gpsp, handy, mgba, pcsx-rearmed, prboom, prosystem, stella,
+tic80 and vecx. GBA games default to gpsp, which is about 2.7 times faster
+than mgba on the RK3326. Mega Drive and SNES cores are all unfree in
+nixpkgs; `r36s.retroarch.unfreeCores = true;` adds picodrive,
+genesis-plus-gx, snes9x2005-plus and snes9x2010, which are then built
+locally. `r36s.retroarch.cores` replaces the list.
+
+The power LED is blue and turns red when the battery is at 20 % or less,
+blinking at 10 % or less (`r36s-battery-led.service`). The red charging
+LED next to it is controlled by the charger.
 
 The buttons and analog sticks are two separate input devices in Linux.
 `r36s-gamepad.service` merges them into one virtual "R36S Gamepad"
 (`/dev/input/r36s-gamepad`) with evsieve; SDL and RetroArch only see that
-one.
+one. evsieve also handles the brightness hotkeys; the D-pad presses that
+change the brightness don't reach the games.
 
 ### Analog stick range
 
@@ -120,7 +151,7 @@ is tuned for big machines, which hurts on the RK3326:
   between 600 and 1296 MHz ~200 times per second, each switch changing
   the CPU voltage over the PMIC's I²C bus. The device boots with the
   `performance` governor and `r36s-cpufreq.service` switches to
-  `schedutil` with a 20 ms rate limit once RetroArch is up.
+  `schedutil` with a 20 ms rate limit once the front end is up.
 - **udev coldplug:** ~2600 of ~3200 coldplug events are for the
   thousands of (mostly built-in) modules and drivers of the generic
   kernel. `systemd-udev-trigger` skips the `module` and `drivers`

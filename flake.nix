@@ -12,6 +12,7 @@
         modules = [
           ./modules/r36s.nix
           ./modules/retroarch.nix
+          ./modules/es-de.nix
           ./configuration.nix
         ];
       };
