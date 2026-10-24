@@ -172,6 +172,22 @@
 	status = "disabled";
 };
 
+/*
+ * The power LED is blue while GPIO2_B5 is low and turns red when it is
+ * high (gpio77 in ArkOS, which uses it as low battery warning). There is
+ * no LED on the ODROID-GO's red LED pin GPIO0_B5. The separate red
+ * charging LED is driven by the charger IC and can't be controlled.
+ * Verified on hardware.
+ */
+&red_led {
+	gpios = <&gpio2 RK_PB5 GPIO_ACTIVE_HIGH>;
+	function = LED_FUNCTION_POWER;
+};
+
+&red_led_pin {
+	rockchip,pins = <2 RK_PB5 RK_FUNC_GPIO &pcfg_pull_none>;
+};
+
 /* Second microSD slot ("TF2") */
 &sdio {
 	bus-width = <4>;

@@ -65,6 +65,8 @@ ODROID-GO Super, all verified on hardware:
 - battery charged by a separate charger IC, DC detect on GPIO0_B3; the
   rk817 is only used as fuel gauge
 - 3380 mAh battery
+- power LED is blue, GPIO2_B5 high turns it red; nothing on the red LED
+  pin GPIO0_B5; the red charging LED is driven by the charger IC
 
 ## ROCKNIX: panel-generic-dsi is out of tree
 

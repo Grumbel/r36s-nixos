@@ -48,6 +48,12 @@ let
     gamepadSticks
   ];
 
+  # FN + D-pad up/down. 5 % steps on a squared scale, so the steps look
+  # even, and never below 1 % (raw 17 of 1666), which is still readable.
+  brightness =
+    dir:
+    "${pkgs.brightnessctl}/bin/brightnessctl -q -e2 -n17 set 5%${if dir == "up" then "+" else "-"}";
+
   # udev looks up a module for every device tree device, which is very slow
   # with the generic kernel's huge alias list. Only allow the lookup for
   # the compatibles of this board that actually have a module. This
@@ -161,7 +167,10 @@ in
   systemd.services.r36s-cpufreq = {
     description = "Switch to the schedutil CPU frequency governor";
     wantedBy = [ "multi-user.target" ];
-    after = [ "retroarch.service" ];
+    after = [
+      "retroarch.service"
+      "es-de.service"
+    ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
@@ -213,6 +222,22 @@ in
         "--input"
         gamepadSticks
         "grab=force"
+        # Brightness. sequential: FN must be held first, so the D-pad
+        # alone is never withheld and stays lag free. The D-pad presses
+        # that change the brightness don't reach the games.
+        "--hook"
+        "btn:mode"
+        "btn:dpad_up"
+        "sequential"
+        "exec-shell=${brightness "up"}"
+        "--hook"
+        "btn:mode"
+        "btn:dpad_down"
+        "sequential"
+        "exec-shell=${brightness "down"}"
+        "--withhold"
+        "btn:dpad_up"
+        "btn:dpad_down"
         "--output"
         "name=R36S Gamepad"
         "create-link=/dev/input/r36s-gamepad"
@@ -220,6 +245,38 @@ in
       Restart = "always";
       RestartSec = 1;
     };
+  };
+
+  # The power LED is blue and turns red when the battery is low, like in
+  # ArkOS: solid red at 20 % and below, blinking at 10 % and below. Not
+  # while the DC charger is plugged in; the rk817 doesn't see the separate
+  # charger IC and reports "Discharging" even then.
+  systemd.services.r36s-battery-led = {
+    description = "Low battery warning on the power LED";
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig.Restart = "always";
+    script = ''
+      led=/sys/class/leds/red:power
+      state=
+      while true; do
+        capacity=$(cat /sys/class/power_supply/rk817-battery/capacity)
+        online=$(cat /sys/class/power_supply/dc-charger/online)
+        if [ "$online" = 1 ] || [ "$capacity" -gt 20 ]; then
+          new=none
+        elif [ "$capacity" -gt 10 ]; then
+          new=default-on
+        else
+          new=timer
+        fi
+        # Setting the trigger restarts the blinking, only do it on changes
+        if [ "$new" != "$state" ]; then
+          echo "$new" > $led/trigger
+          [ "$new" = none ] && echo 0 > $led/brightness
+          state=$new
+        fi
+        sleep 30
+      done
+    '';
   };
 
   # Power button: short press suspends, holding it for 5 s (logind's fixed
