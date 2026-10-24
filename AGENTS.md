@@ -17,7 +17,7 @@ documentation, `UPSTREAM.md` lists upstream bugs found along the way.
 | `dts/rk3326-gameconsole-r36s.dts` | kernel device tree, builds on mainline `rk3326-odroid-go3.dts` |
 | `drivers/panel-generic-dsi/` | out-of-tree ROCKNIX panel driver for the built-in display |
 | `bootloader/`                | idbloader/U-Boot/trust blobs, `boot.ini`, U-Boot's panel DTB, templates for `/boot` |
-| `pkgs/`                      | boot logo, SDL2 demo, ES-DE and FreeImage (both dropped from nixpkgs) |
+| `pkgs/`                      | boot logo, SDL2 demo, ES-DE/FreeImage, GLSL shaders, RA video/audio filters |
 | `scripts/of-kmod-rules.py`   | generates the trimmed `80-drivers.rules`                  |
 | `scripts/es-systems.py`      | generates ES-DE's systems list from the installed cores   |
 

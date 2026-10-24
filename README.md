@@ -111,6 +111,15 @@ nixpkgs; `r36s.retroarch.unfreeCores = true;` adds picodrive,
 genesis-plus-gx, snes9x2005-plus and snes9x2010, which are then built
 locally. `r36s.retroarch.cores` replaces the list.
 
+GLSL shaders and CPU video/audio filters are installed the Nix way: packages
+under `pkgs/libretro-*`, paths set in RetroArch settings, nothing copied into
+`~/.config/retroarch/`. Default is the full libretro GLSL set plus
+Sharp-Shimmerless (same content dArkOS ships). `r36s.retroarch.shaders =
+"minimal";` keeps only nearest/bilinear, scanlines, handheld, interpolation,
+pixel-art-scaling and Sharp-Shimmerless; `"none"` skips shaders.
+`r36s.retroarch.filters = false;` skips the CPU filter packs. Load a preset
+from Quick Menu → Shaders while a game is running.
+
 Native games can be added to ES-DE's "Ports" system, Select + Start
 quits them:
 

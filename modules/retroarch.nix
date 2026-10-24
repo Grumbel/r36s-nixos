@@ -8,6 +8,11 @@
 #   Main Menu -> Quit RetroArch shuts the device down (ES-DE: back to ES-DE)
 #
 # See README.md for the other hotkeys.
+#
+# Shaders and filters live in the Nix store. video_shader_dir /
+# video_filter_dir / audio_filter_dir point at those paths (dArkOS copies
+# the same content into ~/.config/retroarch/ instead). r36s.retroarch.shaders
+# selects full | minimal | none; r36s.retroarch.filters toggles CPU filters.
 {
   config,
   lib,
@@ -61,6 +66,23 @@ let
     "libretro-snes9x2005-plus"
     "libretro-snes9x2010"
   ];
+
+  # GLSL shaders (video_driver = gl). Full set matches dArkOS; minimal is a
+  # handheld-sized subset. Paths stay in the Nix store — no copy into ~/.
+  shadersFull = pkgs.callPackage ../pkgs/libretro-shaders-glsl { };
+  shadersMinimal = pkgs.callPackage ../pkgs/libretro-shaders-glsl/minimal.nix {
+    libretro-shaders-glsl = shadersFull;
+  };
+  shadersPkg =
+    if cfg.shaders == "full" then
+      shadersFull
+    else if cfg.shaders == "minimal" then
+      shadersMinimal
+    else
+      null;
+
+  videoFilters = pkgs.callPackage ../pkgs/libretro-video-filters { };
+  audioFilters = pkgs.callPackage ../pkgs/libretro-audio-filters { };
 
   # Button and axis numbers of the merged "R36S Gamepad" as seen by the
   # udev joypad driver: buttons are numbered in key code order, the
@@ -131,6 +153,16 @@ let
       menu_show_core_updater = "false";
       menu_show_online_updater = "false";
     }
+    // lib.optionalAttrs (shadersPkg != null) {
+      # Store path; RetroArch looks for shaders_glsl/ under this directory
+      video_shader_dir = "${shadersPkg}/share/libretro/shaders";
+      video_shader_enable = "true";
+      auto_shaders_enable = "true";
+    }
+    // lib.optionalAttrs cfg.filters {
+      video_filter_dir = "${videoFilters}/lib/retroarch/filters/video";
+      audio_filter_dir = "${audioFilters}/lib/retroarch/filters/audio";
+    }
     // lib.optionalAttrs (!standalone) {
       # Select + Start goes back to ES-DE right away, not only on the
       # second press
@@ -191,6 +223,38 @@ in
       description = ''
         Where ROMs are looked for. Created if it doesn't exist, mount a
         partition or second SD card there to keep ROMs elsewhere.
+      '';
+    };
+
+    shaders = lib.mkOption {
+      type = lib.types.enum [
+        "full"
+        "minimal"
+        "none"
+      ];
+      default = "full";
+      description = ''
+        GLSL shader pack for RetroArch (`video_driver = "gl"`).
+
+        - `full`: entire libretro/glsl-shaders tree plus Sharp-Shimmerless
+          (same content dArkOS installs under ~/.config/retroarch/shaders).
+        - `minimal`: nearest/bilinear, scanlines, handheld LCD/GB,
+          interpolation, pixel-art-scaling, Sharp-Shimmerless — enough for
+          a small LCD without multipass CRT/NTSC cost.
+        - `none`: do not install shaders or set video_shader_dir.
+
+        Paths are Nix store directories pointed at by `video_shader_dir`;
+        nothing is copied into the user's home.
+      '';
+    };
+
+    filters = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        Build and install RetroArch CPU video filters and audio DSP filters
+        (the .so/.filt and .so/.dsp sets dArkOS copies next to the binary).
+        Directories are store paths set via video_filter_dir / audio_filter_dir.
       '';
     };
   };
