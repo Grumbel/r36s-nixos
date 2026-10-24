@@ -9,10 +9,10 @@ documentation, `UPSTREAM.md` lists upstream bugs found along the way.
 
 | Path                         | What                                                      |
 |------------------------------|-----------------------------------------------------------|
-| `flake.nix`                  | `nixosConfigurations.r36s`, `packages.*.sdImage`/`dtbs`   |
+| `flake.nix`                  | `nixosConfigurations.r36s`, `nixosModules.*` (used by private configs), `packages.*.sdImage`/`dtbs` |
 | `modules/r36s.nix`           | hardware: kernel, DTB, firmware, boot chain, SD image, gamepad merge, boot-time tuning |
 | `modules/retroarch.nix`      | RetroArch package (cores, gamepad autoconfig, hotkeys), `r36s.frontend`, standalone RetroArch on tty1 |
-| `modules/es-de.nix`          | ES-DE on tty1, launches games in RetroArch                |
+| `modules/es-de.nix`          | ES-DE on tty1, launches games in RetroArch, `r36s.es-de.ports` for native games |
 | `configuration.nix`          | the "user" part: WiFi, SSH, users, packages               |
 | `dts/rk3326-gameconsole-r36s.dts` | kernel device tree, builds on mainline `rk3326-odroid-go3.dts` |
 | `drivers/panel-generic-dsi/` | out-of-tree ROCKNIX panel driver for the built-in display |
@@ -53,8 +53,10 @@ To check that a change actually reached the device, compare
 ## Testing the UI without pressing buttons
 
 - Screenshot of the panel (buffers are linear BGRA):
-  `sudo ffmpeg -device /dev/dri/card0 -f kmsgrab -i - -vf hwdownload,format=bgra -frames:v 1 shot.png`
-  (`nix-shell -p ffmpeg-headless` on the device).
+  `sudo ffmpeg -device /dev/dri/card0 -f kmsgrab -i - -vf hwdownload,format=bgra,format=bgr24 -frames:v 1 shot.png`
+  (`nix-shell -p ffmpeg-headless` on the device). The `bgr24` drops the
+  alpha channel, which the display ignores: some games leave it at 0 and
+  the screenshot looks blank otherwise.
 - Button presses: create a uinput clone of `/dev/input/r36s-gamepad` with
   python-evdev, named "R36S Gamepad" with bustype/vendor/product/version 0,
   so ES-DE (SDL GUID) and RetroArch (autoconfig by name) treat it like the

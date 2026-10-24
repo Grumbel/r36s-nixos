@@ -111,6 +111,17 @@ nixpkgs; `r36s.retroarch.unfreeCores = true;` adds picodrive,
 genesis-plus-gx, snes9x2005-plus and snes9x2010, which are then built
 locally. `r36s.retroarch.cores` replaces the list.
 
+Native games can be added to ES-DE's "Ports" system, Select + Start
+quits them:
+
+    r36s.es-de.ports.SuperTux.command = "${pkgs.supertux}/bin/supertux2 --fullscreen";
+
+They are started with `SDL_GAMECONTROLLERCONFIG` set to the R36S mapping
+(buttons by label, A is the right button), so SDL games see the gamepad
+like under ArkOS/PortMaster. Their output goes to the journal
+(`journalctl -t SuperTux`). `r36s.retroarch.settings` adds RetroArch
+settings.
+
 The power LED is blue and turns red when the battery is at 20 % or less,
 blinking at 10 % or less (`r36s-battery-led.service`). The red charging
 LED next to it is controlled by the charger.
@@ -141,6 +152,21 @@ read the device while `r36s-gamepad.service` grabs it):
     while true; do cat /sys/bus/iio/devices/iio:device1/in_voltage{0,1,2,3}_raw | tr '\n' ' '; echo; done
 
 The channels are left X, right X, left Y, right Y.
+
+## Your own configuration
+
+To keep your own configuration in a separate flake, import the modules
+instead of forking:
+
+    inputs.r36s-nixos.url = "github:Grumbel/r36s-nixos";
+
+    nixosConfigurations.r36s = r36s-nixos.inputs.nixpkgs.lib.nixosSystem {
+      modules = [
+        r36s-nixos.nixosModules.default        # hardware, RetroArch, ES-DE
+        r36s-nixos.nixosModules.configuration  # WiFi, SSH, user of this image
+        ./configuration.nix                    # your changes
+      ];
+    };
 
 ## Boot time
 

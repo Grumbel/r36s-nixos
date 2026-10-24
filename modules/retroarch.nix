@@ -139,7 +139,8 @@ let
     // lib.optionalAttrs standalone {
       # Quitting powers the device off, only allow it from the menu
       input_exit_emulator_btn = "nul";
-    };
+    }
+    // cfg.settings;
   };
 in
 {
@@ -174,6 +175,15 @@ in
       the unfree Mega Drive and SNES cores (picodrive, genesis-plus-gx,
       snes9x2005-plus, snes9x2010). They are not in the binary cache and
       are built locally'';
+
+    settings = lib.mkOption {
+      type = lib.types.attrsOf lib.types.str;
+      default = { };
+      example = {
+        savefiles_in_content_dir = "true";
+      };
+      description = "Extra RetroArch settings, they override the ones set here.";
+    };
 
     romDirectory = lib.mkOption {
       type = lib.types.str;

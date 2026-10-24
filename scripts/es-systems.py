@@ -7,10 +7,12 @@ RetroArch and core paths filled in, and drop systems that end up without
 any command. The output starts with <loadExclusive/>, so ES-DE ignores
 its bundled file.
 
-Usage: es-systems.py BUNDLED_XML CORES_DIR RETROARCH PREFERRED_CORES OUT
+Usage: es-systems.py BUNDLED_XML CORES_DIR RETROARCH PREFERRED_CORES OUT [EXTRA_XML]
 PREFERRED_CORES is a comma separated list of core names (e.g.
 "gpsp,picodrive"); a system's commands using these cores come first, as
-the first command is ES-DE's default emulator.
+the first command is ES-DE's default emulator. The <system> entries of
+EXTRA_XML (a <systemList>) are added as they are, replacing bundled systems
+of the same name.
 """
 
 import os
@@ -22,7 +24,9 @@ CORE_RE = re.compile(r"^%EMULATOR_RETROARCH% -L %CORE_RETROARCH%/(\w+)_libretro\
 
 
 def main():
-    bundled, cores_dir, retroarch, preferred, out = sys.argv[1:]
+    bundled, cores_dir, retroarch, preferred, out = sys.argv[1:6]
+    extra = ET.parse(sys.argv[6]).getroot().findall("system") if len(sys.argv) > 6 else []
+    extra_names = {system.findtext("name") for system in extra}
     preferred = [c for c in preferred.split(",") if c]
     installed = {
         f.removesuffix("_libretro.so")
@@ -35,6 +39,8 @@ def main():
     result = ET.Element("systemList")
 
     for system in root.findall("system"):
+        if system.findtext("name") in extra_names:
+            continue
         commands = []
         for command in system.findall("command"):
             m = CORE_RE.match(command.text.strip())
@@ -58,6 +64,7 @@ def main():
         for i, (_, command) in enumerate(commands):
             system.insert(pos + i, command)
         result.append(system)
+    result.extend(extra)
 
     ET.indent(result)
     # <loadExclusive/> has to be a top level element next to <systemList>,

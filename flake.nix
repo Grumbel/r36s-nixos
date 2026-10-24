@@ -10,14 +10,25 @@
     {
       nixosConfigurations.r36s = nixpkgs.lib.nixosSystem {
         modules = [
-          ./modules/r36s.nix
-          ./modules/retroarch.nix
-          ./modules/es-de.nix
-          ./configuration.nix
+          self.nixosModules.default
+          self.nixosModules.configuration
         ];
       };
 
-      nixosModules.r36s = ./modules/r36s.nix;
+      # For flakes that build their own R36S system on top of this one:
+      # `default` is the hardware support and the front ends,
+      # `configuration` the WiFi/SSH/user setup of the image built here.
+      nixosModules = {
+        default.imports = [
+          self.nixosModules.r36s
+          self.nixosModules.retroarch
+          self.nixosModules.es-de
+        ];
+        r36s = ./modules/r36s.nix;
+        retroarch = ./modules/retroarch.nix;
+        es-de = ./modules/es-de.nix;
+        configuration = ./configuration.nix;
+      };
 
       # The image is built natively for aarch64-linux, an x86_64 host needs
       # `boot.binfmt.emulatedSystems = [ "aarch64-linux" ];` for that.
