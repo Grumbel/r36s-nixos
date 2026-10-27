@@ -3,7 +3,7 @@
 NixOS for the R36S (Rockchip RK3326) handheld: mainline kernel, ES-DE and
 RetroArch on the built-in display, USB WiFi, SSH.
 
-![R36S running NixOS](docs/screenshot.png)
+![R36S running NixOS](docs/screenshot.jpg)
 
 ## Build
 
